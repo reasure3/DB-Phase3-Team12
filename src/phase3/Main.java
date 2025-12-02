@@ -1,129 +1,67 @@
 package phase3;
 
-import db.DBConnection;
-import dao.*;
-import service.*;
-import model.Student;
+import org.apache.catalina.Context;
+import org.apache.catalina.startup.Tomcat;
 
-import java.sql.Connection;
-import java.util.Scanner;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class Main {
-    public static void main(String[] args) {
-        // DB 연결
-        Connection conn = DBConnection.getConnection();
-        if (conn == null) {
-            System.out.println("[FAILED] DB Connection Failed!");
-            return;
-        }
-        System.out.println("[SUCCESS] DB Connected Successfully!");
-        
-        // Scanner 생성
-        Scanner sc = new Scanner(System.in);
-        
-        // DAO 객체 생성
-        StudentDAO studentDAO = new StudentDAO(conn);
-        CourseDAO courseDAO = new CourseDAO(conn);
-        BasketDAO basketDAO = new BasketDAO(conn);
-        SectionDAO sectionDAO = new SectionDAO(conn); 
-        BidDAO bidDAO = new BidDAO(conn);
-        AuctionDAO auctionDAO = new AuctionDAO(conn);
-        EnrollmentDAO enrollmentDAO = new EnrollmentDAO(conn);
-        
-        // Service 객체 생성
-        AuthService authService = new AuthService(studentDAO, sc);
-        CourseService courseService = new CourseService(courseDAO, sc);
-        SectionService sectionService = new SectionService(sectionDAO, courseDAO, sc);
-        BasketService basketService = new BasketService(basketDAO, sc);
-        AuctionService auctionService = new AuctionService(auctionDAO, bidDAO, studentDAO, sc);
-        EnrollmentService enrollmentService = new EnrollmentService(enrollmentDAO, basketDAO, sc);
-        
-        Student loggedInStudent = null;
-        boolean running = true;
+    public static void main(String[] args) throws Exception {
+        int port = resolvePort(args);
+        File docBase = prepareDocBase();
 
-        while (running) {
-            if (loggedInStudent == null) {
-                // 로그인 전 메뉴
-                System.out.println("\n========================================");
-                System.out.println("   경매 기반 수강신청 시스템");
-                System.out.println("========================================");
-                System.out.println("1. 로그인");
-                System.out.println("2. 회원가입");
-                System.out.println("0. 종료");
-                System.out.println("========================================");
-                System.out.print("선택: ");
+        Tomcat tomcat = new Tomcat();
+        tomcat.setPort(port);
+        tomcat.setBaseDir(createTempDir("tomcat-work").toString());
 
-                int choice = sc.nextInt();
-                sc.nextLine(); // 엔터 제거
+        Context context = tomcat.addContext("", docBase.getAbsolutePath());
 
-                switch (choice) {
-                    case 1:
-                        loggedInStudent = authService.handleLogin();
-                        break;
-                    case 2:
-                        authService.handleSignUp();
-                        break;
-                    case 0:
-                        running = false;
-                        break;
-                    default:
-                        System.out.println("잘못된 입력입니다.");
-                }
-            } else {
-                // 로그인 후 메뉴
-                System.out.println("\n========================================");
-                System.out.println("   경매 기반 수강신청 시스템");
-                System.out.println("   [" + loggedInStudent.getName() + "님 로그인 중]");
-                System.out.println("========================================");
-                System.out.println("1. 강의 조회");
-                System.out.println("2. 분반 조회");
-                System.out.println("3. 수강꾸러미");
-                System.out.println("4. 경매 참여");
-                System.out.println("5. 등록조회");
-                System.out.println("6. 종료 (로그아웃)");
-                System.out.println("========================================");
-                System.out.print("선택: ");
-                
-                int choice = sc.nextInt();
-                sc.nextLine();
-                
-                switch (choice) {
-                    case 1:
-                        // TODO: 쿼리 실행 Service (다른 팀원)
-                    	courseService.manageCourse(loggedInStudent);
-                        break;
-                    case 2:
-                        sectionService.manageSectionQuery(loggedInStudent);;
-                        break;
-                    case 3:
-                    	basketService.manageBasket(loggedInStudent);
-                        break;
-                    case 4:
-                    	auctionService.manageAuction(loggedInStudent);
-                        break;
-                    case 5:
-                    	enrollmentService.manageEnrollment(loggedInStudent);
-                        break;
-                    case 6:
-                    	System.out.println("로그아웃 되었습니다.");
-                        loggedInStudent = null;
-                        break;
-                    case 0:
-                        running = false;
-                        break;
-                    default:
-                        System.out.println("잘못된 선택입니다.");
-                }
+        // 서블릿 클래스는 어노테이션(@WebServlet) 기반으로 로딩되거나 web.xml에 정의되어야 합니다.
+        // 각 기능별 서블릿을 추가할 때 아래와 같은 방식으로 컨테이너에 등록할 수 있습니다.
+        // Tomcat.addServlet(context, "ExampleServlet", new ExampleServlet());
+        // context.addServletMappingDecoded("/example", "ExampleServlet");
+
+        System.out.println("Starting embedded Tomcat on port " + port);
+        tomcat.start();
+        tomcat.getServer().await();
+    }
+
+    private static int resolvePort(String[] args) {
+        if (args != null && args.length > 0) {
+            try {
+                return Integer.parseInt(args[0]);
+            } catch (NumberFormatException ignored) {
+                // fallback to environment or default
             }
         }
-        
-        System.out.println("프로그램 종료!");
-        
-        try {
-            if (conn != null) conn.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+
+        String portEnv = System.getenv("PORT");
+        if (portEnv != null) {
+            try {
+                return Integer.parseInt(portEnv);
+            } catch (NumberFormatException ignored) {
+                // ignore and fallback to default
+            }
         }
-        sc.close();
+        return 8080;
+    }
+
+    private static File prepareDocBase() throws Exception {
+        Path webappPath = Paths.get("src", "main", "webapp");
+        if (Files.exists(webappPath)) {
+            return webappPath.toFile();
+        }
+
+        // 웹 리소스가 아직 없다면 Tomcat이 요구하는 문서 루트를 임시로 생성한다.
+        Path tempDir = createTempDir("tomcat-docbase");
+        Files.createDirectories(tempDir);
+        return tempDir.toFile();
+    }
+
+    private static Path createTempDir(String prefix) throws Exception {
+        return Files.createTempDirectory(prefix);
     }
 }

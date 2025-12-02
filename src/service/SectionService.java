@@ -9,58 +9,22 @@ import model.Student;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 
 public class SectionService {
     private SectionDAO sectionDAO;
     private CourseDAO courseDAO;
-    private Scanner sc;
-    
-    public SectionService(SectionDAO sectionDAO, CourseDAO courseDAO, Scanner sc) {
+
+    public SectionService(SectionDAO sectionDAO, CourseDAO courseDAO) {
         this.sectionDAO = sectionDAO;
         this.courseDAO = courseDAO;
-        this.sc = sc;
-    }
-    
-    /**
-     * 분반 조회 메뉴
-     */
-    public void manageSectionQuery(Student loggedInStudent) {
-        System.out.println("\n========== 분반 조회 ==========");
-        System.out.println("1. 강의 코드로 분반 조회");
-        System.out.println("2. 나의 분반 조회");
-        System.out.println("0. 뒤로가기");
-        System.out.println("==============================");
-        System.out.print("선택: ");
-        
-        int choice = sc.nextInt();
-        sc.nextLine();
-        
-        try {
-            switch (choice) {
-                case 1:
-                    querySectionByCourseId();
-                    break;
-                case 2:
-                    queryMySection(loggedInStudent);
-                    break;
-                case 0:
-                    return;
-                default:
-                    System.out.println("잘못된 선택입니다.");
-            }
-        } catch (SQLException e) {
-            System.out.println("에러 발생: " + e.getMessage());
-        }
     }
     
     /**
      * 1. 강의 코드로 분반 조회
      */
-    private void querySectionByCourseId() throws SQLException {
-        System.out.print("\n강의 코드 입력 (예: CS301): ");
-        String courseId = sc.nextLine().toUpperCase();
-        
+    public void querySectionByCourseId(String courseId) throws SQLException {
+        courseId = courseId.toUpperCase();
+
         List<Section> sections = sectionDAO.selectByCourseId(courseId);
         Course course = courseDAO.selectById(courseId);
         
@@ -95,7 +59,7 @@ public class SectionService {
     /**
      * 2. 나의 분반 조회 
      */
-    private void queryMySection(Student loggedInStudent) throws SQLException {
+    public void queryMySection(Student loggedInStudent) throws SQLException {
         Map<Course, Section> courseSectionMap = sectionDAO.selectMySection(loggedInStudent.getStudentId());
         
         if (courseSectionMap.isEmpty()) {

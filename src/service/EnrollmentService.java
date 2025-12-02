@@ -5,79 +5,37 @@ import dao.BasketDAO;
 import model.Student;
 
 import java.sql.SQLException;
-import java.util.Scanner;
 
 public class EnrollmentService {
-	private EnrollmentDAO enrollmentDAO;
-	private BasketDAO basketDAO;
-	private Scanner sc;
+        private EnrollmentDAO enrollmentDAO;
+        private BasketDAO basketDAO;
 
-	public EnrollmentService(EnrollmentDAO enrollmentDAO, BasketDAO basketDAO, Scanner sc) {
-		this.enrollmentDAO = enrollmentDAO;
-		this.basketDAO = basketDAO;
-		this.sc = sc;
-	}
+        public EnrollmentService(EnrollmentDAO enrollmentDAO, BasketDAO basketDAO) {
+                this.enrollmentDAO = enrollmentDAO;
+                this.basketDAO = basketDAO;
+        }
 
-	/**
-	 * 등록 메뉴
-	 */
-	public void manageEnrollment(Student loggedInStudent) {
-		System.out.println("\n==== 등록 메뉴 ====");
-		System.out.println("1. 나의 등록 조회");
-		System.out.println("2. 등록 취소");
-		System.out.println("3. 학과별 수강인원 조회");
-		System.out.println("0. 뒤로 가기");
-		System.out.print("선택: ");
-
-		int choice = sc.nextInt();
-		sc.nextLine();
-
-		try {
-			switch (choice) {
-			case 1:
-				queryMyEnrollment(loggedInStudent);
-				break;
-			case 2:
-				cancelEnrollment(loggedInStudent);
-				break;
-			case 3:
-				queryEnrollmentByDepartment();
-				break;
-			case 0:
-				return;
-			default:
-				System.out.println("잘못된 입력입니다. 다시 선택하세요.");
-			}
-		} catch (SQLException e) {
-			System.out.println("에러 발생: " + e.getMessage());
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * 1. 나의 등록 조회
-	 */
-	private void queryMyEnrollment(Student loggedInStudent) throws SQLException {
-		try {
-			long studentId = loggedInStudent.getStudentId();
-			System.out.println("\n[나의 등록 조회] - 학생 ID: " + studentId);
-			enrollmentDAO.printMyEnrollment(studentId);
-		} catch (Exception e) {
+        /**
+         * 1. 나의 등록 조회
+         */
+        public void queryMyEnrollment(Student loggedInStudent) throws SQLException {
+                try {
+                        long studentId = loggedInStudent.getStudentId();
+                        System.out.println("\n[나의 등록 조회] - 학생 ID: " + studentId);
+                        enrollmentDAO.printMyEnrollment(studentId);
+                } catch (Exception e) {
 			System.out.println("나의 등록 조회 중 오류: " + e.getMessage());
 		}
 	}
 
 	/**
-	 * 2. 등록 취소
-	 */
-	private void cancelEnrollment(Student loggedInStudent) throws SQLException {
-		System.out.print("취소할 분반의 SECTION_ID 입력: ");
-		String cancelSectionId = sc.nextLine();
+         * 2. 등록 취소
+         */
+        public void cancelEnrollment(Student loggedInStudent, String cancelSectionId) throws SQLException {
+                try {
+                        long studentId = loggedInStudent.getStudentId();
 
-		try {
-			long studentId = loggedInStudent.getStudentId();
-
-			// 1) ENROLLMENT 삭제
+                        // 1) ENROLLMENT 삭제
 			int deletedEnr = enrollmentDAO.deleteEnrollment(studentId, cancelSectionId);
 
 			// 2) BASKET → basketId 조회
@@ -98,17 +56,14 @@ public class EnrollmentService {
 	}
 
 	/**
-	 * 3. 학과별 수강인원 조회
-	 */
-	private void queryEnrollmentByDepartment() throws SQLException {
-		System.out.print("조회할 학과 입력: ");
-		String dept = sc.nextLine();
-
-		try {
-			enrollmentDAO.printEnrollmentByDepartment(dept);
-		} catch (Exception e) {
-			System.out.println("학과별 수강인원 조회 중 오류: " + e.getMessage());
-		}
+         * 3. 학과별 수강인원 조회
+         */
+        public void queryEnrollmentByDepartment(String dept) throws SQLException {
+                try {
+                        enrollmentDAO.printEnrollmentByDepartment(dept);
+                } catch (Exception e) {
+                        System.out.println("학과별 수강인원 조회 중 오류: " + e.getMessage());
+                }
 	}
 
 	/**

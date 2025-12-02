@@ -10,65 +10,22 @@ import model.Student;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 
 public class AuctionService {
     private AuctionDAO auctionDAO;
     private BidDAO bidDAO;
     private StudentDAO studentDAO;
-    private Scanner sc;
-    
-    public AuctionService(AuctionDAO auctionDAO, BidDAO bidDAO, StudentDAO studentDAO, Scanner sc) {
+
+    public AuctionService(AuctionDAO auctionDAO, BidDAO bidDAO, StudentDAO studentDAO) {
         this.auctionDAO = auctionDAO;
         this.bidDAO = bidDAO;
         this.studentDAO = studentDAO;
-        this.sc = sc;
-    }
-    
-    /**
-     * 경매 참여 메뉴
-     */
-    public void manageAuction(Student loggedInStudent) {
-        System.out.println("\n========== 경매 참여 ==========");
-        System.out.println("1. 학과별 경매 조회");
-        System.out.println("2. 나의 경매 조회");
-        System.out.println("3. 입찰하기");
-        System.out.println("0. 뒤로가기");
-        System.out.println("==============================");
-        System.out.print("선택: ");
-        
-        int choice = sc.nextInt();
-        sc.nextLine();
-        
-        try {
-            switch (choice) {
-                case 1:
-                    queryAuctionByDepartment();
-                    break;
-                case 2:
-                    queryMyAuctions(loggedInStudent);
-                    break;
-                case 3:
-                    placeBid(loggedInStudent);
-                    break;
-                case 0:
-                    return;
-                default:
-                    System.out.println("잘못된 선택입니다.");
-            }
-        } catch (SQLException e) {
-            System.out.println("에러 발생: " + e.getMessage());
-            e.printStackTrace();
-        }
     }
     
     /**
      * 1. 학과별 경매 조회
      */
-    private void queryAuctionByDepartment() throws SQLException {
-        System.out.print("\n학과명 입력: ");
-        String department = sc.nextLine();
-        
+    public void queryAuctionByDepartment(String department) throws SQLException {
         List<Auction> auctions = auctionDAO.selectByDepartment(department);
         
         if (auctions.isEmpty()) {
@@ -95,7 +52,7 @@ public class AuctionService {
     /**
      * 2. 나의 경매 조회 (참여 가능한 모든 경매 + 내 입찰 정보)
      */
-    private void queryMyAuctions(Student loggedInStudent) throws SQLException {
+    public void queryMyAuctions(Student loggedInStudent) throws SQLException {
         Map<Auction, Bid> auctionBidMap = auctionDAO.selectMyAuctions(loggedInStudent.getStudentId());
         
         if (auctionBidMap.isEmpty()) {
@@ -133,13 +90,7 @@ public class AuctionService {
     /**
      * 3. 입찰하기
      */
-    /**
-     * 3. 입찰하기
-     */
-    private void placeBid(Student loggedInStudent) throws SQLException {
-        System.out.print("\n경매 ID 입력: ");
-        String auctionId = sc.nextLine();
-        
+    public void placeBid(Student loggedInStudent, String auctionId, int bidAmount) throws SQLException {
         if (!auctionDAO.existsById(auctionId)) {
             System.out.println("존재하지 않는 경매입니다.");
             return;
@@ -177,11 +128,7 @@ public class AuctionService {
         System.out.println("보유 포인트: " + student.getMaxPoint());
         System.out.println("사용한 포인트: " + totalBidPoints);
         System.out.println("남은 포인트: " + availablePoints);
-        
-        System.out.print("\n입찰 포인트 입력: ");
-        int bidAmount = sc.nextInt();
-        sc.nextLine();
-        
+
         if (bidAmount > availablePoints) {
             System.out.println("포인트가 부족합니다. (필요: " + bidAmount + ", 보유: " + availablePoints + ")");
             return;
@@ -189,14 +136,6 @@ public class AuctionService {
         
         if (bidAmount <= 0) {
             System.out.println("0보다 큰 포인트를 입력해주세요.");
-            return;
-        }
-        
-        System.out.print(bidAmount + " 포인트로 입찰하시겠습니까? (y/n): ");
-        String confirm = sc.nextLine();
-        
-        if (!confirm.equalsIgnoreCase("y")) {
-            System.out.println("입찰이 취소되었습니다.");
             return;
         }
         
